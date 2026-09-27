@@ -1,151 +1,62 @@
-# AI Song Generator - برنامج توليد الأغاني بالذكاء الاصطناعي
+# AI Song Generator
 
-برنامج يقوم بإنشاء أغاني بصيغة MP3 من النصوص العربية والاختيار من عدة أنماط موسيقية.
+A Flask web app that turns **Arabic lyrics into a full song** — synthesizing a
+vocal performance and a style-matched backing track, then mixing and exporting
+the result as an MP3.
 
-## المميزات
+Powered by Suno's [Bark](https://github.com/suno-ai/bark) text-to-audio model.
 
-✓ توليد صوت غنائي من النص باستخدام Bark AI  
-✓ اختيار من 4 أنماط موسيقية مختلفة (إلكتروني، حماسي، هادئ، درامي)  
-✓ إمكانية تحديد السرعة (Tempo) اختيارياً  
-✓ نظام logging شامل لتتبع جميع العمليات  
-✓ واجهة ويب سهلة الاستخدام  
-✓ تحميل ملفات MP3 تلقائياً بعد الإنشاء
+## Features
 
-## المتطلبات
+- **Lyrics → song** — paste lyrics, choose a style, download an MP3.
+- **Four musical styles**, each with dedicated voice and instrumentation prompts:
+  - `إلكتروني` — bright electronic pop
+  - `حماسي` — energetic stadium anthem
+  - `هادئ` — calm ambient
+  - `درامي` — dramatic cinematic score
+- **Optional tempo** control (40–240 BPM), validated and clamped to a safe range.
+- **Two-track production** — vocals and backing music are generated separately,
+  level-balanced, overlaid, and normalized.
+- **RTL Arabic web UI** with a one-click download link.
 
-- Python 3.10+
-- FFmpeg (لتحويل الصوت إلى MP3)
-- PyTorch 2.1+
-- Bark (TTS)
+## How it works
 
-## التثبيت
+1. `generate_song.py` preloads the Bark checkpoints once and reuses them for
+   every request.
+2. The **vocal track** is synthesized from the lyrics plus a style-specific
+   voice prompt, using Bark's `v2/singing` history prompt.
+3. The **backing track** is synthesized from an instrumental style description
+   and padded to at least the length of the vocals.
+4. The tracks are mixed (vocals +6 dB, backing −8 dB), normalized, and exported
+   at 192 kbps.
 
-### 1. تثبيت المكتبات
+## Getting started
+
 ```bash
 pip install -r requirements.txt
-```
-
-### 2. تثبيت FFmpeg
-
-**على Windows:**
-```bash
-choco install ffmpeg
-```
-
-**على macOS:**
-```bash
-brew install ffmpeg
-```
-
-**على Linux:**
-```bash
-sudo apt-get install ffmpeg
-```
-
-## البدء السريع
-
-### شغيل التطبيق
-```bash
 python app.py
 ```
 
-افتح المتصفح على `http://localhost:5000`
+The app runs at <http://localhost:5000>.
 
-### واجهة الويب
+- The **first** generation downloads and preloads the Bark checkpoints, so
+  expect a longer wait on first use.
+- MP3 export relies on `pydub`, which requires an **FFmpeg** install on the
+  system `PATH`.
+- Bark is compute-heavy and performs best on a CUDA GPU.
 
-1. **أدخل نص الأغنية** (Lyrics)
-2. **اختر الستايل**: إلكتروني / حماسي / هادئ / درامي
-3. **حدد السرعة** (اختياري): 40-240 BPM
-4. **اضغط "إنشاء ملف MP3"**
-5. **تحميل الملف**
-
-## نظام السجلات (Logging)
-
-جميع العمليات يتم تسجيلها في:
-```
-logs/ai_song_YYYYMMDD_HHMMSS.log
-```
-
-## هيكل المشروع
+## Project layout
 
 ```
-ai song/
-├── app.py              # تطبيق Flask
-├── generate_song.py    # محرك التوليد
-├── requirements.txt    # المكتبات
-├── README.md           # هذا الملف
-├── templates/
-│   └── index.html      # الواجهة
-└── logs/               # السجلات
+app.py                # Flask routes: / , /generate , /download
+generate_song.py      # Bark loading, vocal + backing synthesis, mixing
+templates/index.html  # RTL Arabic web UI
+requirements.txt      # Flask, pydub, numpy, torch/torchaudio, Bark
 ```
 
-## استكشاف الأخطاء
+## Notes
 
-### خطأ: "Weights only load failed"
-**الحل**: تم تطبيقه تلقائياً
-
-### خطأ: "FFmpeg not found"
-**الحل**: تأكد من تثبيت FFmpeg
-
-## الملاحظات
-
-- **أول مرة**: قد تستغرق 5-10 دقائق (تحميل النموذج)
-- **المرات اللاحقة**: أسرع بكثير
-- **الموارد**: يفضل GPU للأداء الأفضل
-
----
-
-**الإصدار**: 2.0
-
-> إذا كنت تستخدم جهاز CPU فقط، ستحتاج أيضاً إلى تثبيت PyTorch للمعالج المركزي:
-
-```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-```
-
-3. تأكد من أن FFmpeg مثبت على جهازك لتصدير MP3. يمكنك تثبيته من:
-
-- https://ffmpeg.org/download.html
-
-4. شغّل التطبيق:
-
-```bash
-python app.py
-```
-
-5. افتح المتصفح وزُر:
-
-```text
-http://127.0.0.1:5000
-```
-
-6. أدخل نص الأغنية واختر الستايل، ثم اضغط "إنشاء ملف MP3" لتحميل `song.mp3`.
-
-## تعديل اللحن من النص والستايل
-
-- يتم تحويل النص إلى صوت غنائي تلقائياً باستخدام مكتبة Bark المفتوحة.
-- الخلفية الموسيقية تُنشأ أيضاً بواسطة Bark بوصفيّات ستايل مختلفة.
-- لا تحتاج لإدخال أرقام نغمات أو مدّد يدوياً.
-
-## تشغيل السكربت بدون واجهة
-
-```bash
-python generate_song.py
-```
-
-## تعديل اللحن
-
-- لتغيير سرعة الإيقاع، عدّل Tempo في واجهة الويب أو في كود `generate_song.py`.
-- لتغيير الستايل، اختر بين "إلكتروني" و"حماسي" و"هادئ" و"درامي".
-- يمكن تعديل طريقة توليد الصوت في `generate_song.py` إذا أردت تغيير تدرجات النغمات أو الموجات الصوتية.
-
-## أوامر Git للرفع إلى GitHub
-
-```bash
-git init
- git add generate_song.py app.py README.md templates/index.html
- git commit -m "Add HTML UI and Flask backend for MIDI song generator"
- git branch -M main
- git remote add origin <YOUR_GITHUB_REPO_URL>
- git push -u origin main
-```
+- Bark is multilingual and handles Arabic, but output quality varies with lyric
+  length, structure, and diacritics.
+- Generated audio and per-run logs are written locally (`song.mp3`, `logs/`)
+  and are gitignored.
